@@ -2848,3 +2848,18 @@ input {
     overflow-y: auto;
   }
 }
+
+/* Normal navigation has no status row; retain the compact voice control. */
+.turn-card {
+  position: relative;
+}
+.turn-topline.voice-only {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  margin: 0;
+  padding: 0;
+}
+.turn-card:has(.voice-only) .turn-main {
+  padding-right: 28px;
+}

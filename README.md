@@ -93,3 +93,7 @@ npm run build
 ## 第三方组件
 
 地图旋转使用 leaflet-rotate 0.2.8（GPL-3.0），上游为 https://github.com/Raruto/leaflet-rotate 。许可证副本见 `docs/licenses/leaflet-rotate.txt`，完整对应版本源码可通过 `npm ci` 获取。地图数据来源与限制见 `docs/SOURCE-DATA.md`。
+
+## 调试界面
+
+`npm run dev` 显示模拟驾驶操作栏、场景切换和模拟设置入口。`npm run build && npm start` 默认隐藏这些调试控件；正常导航不显示“正在导航”状态行，仍保留语音按钮与偏航/返回道路等必要提示。当前定位数据仍为 mock，隐藏调试界面不代表已接入真实游戏。

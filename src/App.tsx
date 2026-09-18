@@ -54,6 +54,7 @@ const INITIAL: Place = {
   category: "position",
   region: "东京市",
 };
+const debugMode = import.meta.env.DEV;
 const defaultSettings: Settings = { speed: 90, rate: 1, voice: false };
 const categories = [
   { id: "all", name: "全部", icon: Compass },
@@ -634,19 +635,21 @@ export default function App() {
               <div
                 className={`turn-card ${recovery.status !== "normal" ? "recovering" : ""}`}
               >
-                <div className="turn-topline">
-                  <span>
-                    <span className="status-dot" />
-                    {recovery.status === "normal"
-                      ? "正在导航"
-                      : recovery.status === "deviated"
+                <div
+                  className={`turn-topline ${recovery.status === "normal" ? "voice-only" : ""}`}
+                >
+                  {recovery.status !== "normal" && (
+                    <span>
+                      <span className="status-dot" />
+                      {recovery.status === "deviated"
                         ? "已偏离路线"
                         : recovery.status === "rerouting"
                           ? "正在重新规划"
                           : recovery.status === "error"
                             ? "重新规划暂不可用"
                             : "返回道路指引"}
-                  </span>
+                    </span>
+                  )}
                   <button
                     className="light-icon"
                     onClick={() =>
@@ -858,31 +861,33 @@ export default function App() {
                   </ol>
                 )}
               </div>
-              <div className="playback-bar">
-                <Radio size={16} />
-                <button
-                  className="scenario-toggle"
-                  aria-expanded={scenariosOpen}
-                  onClick={() => setScenariosOpen((v) => !v)}
-                >
-                  模拟驾驶 · {settings.rate}×<ChevronDown size={13} />
-                </button>
-                <button
-                  onClick={() => setPaused(!paused)}
-                  aria-label={paused ? "继续模拟行驶" : "暂停模拟行驶"}
-                >
-                  {paused ? <Play size={17} /> : <Pause size={17} />}
-                  <span>{paused ? "继续" : "暂停"}</span>
-                </button>
-                <button
-                  className="icon-button"
-                  onClick={() => setSettingsOpen(true)}
-                  aria-label="设置模拟速度"
-                >
-                  <SlidersHorizontal size={17} />
-                </button>
-              </div>
-              {scenariosOpen && (
+              {debugMode && (
+                <div className="playback-bar">
+                  <Radio size={16} />
+                  <button
+                    className="scenario-toggle"
+                    aria-expanded={scenariosOpen}
+                    onClick={() => setScenariosOpen((v) => !v)}
+                  >
+                    模拟驾驶 · {settings.rate}×<ChevronDown size={13} />
+                  </button>
+                  <button
+                    onClick={() => setPaused(!paused)}
+                    aria-label={paused ? "继续模拟行驶" : "暂停模拟行驶"}
+                  >
+                    {paused ? <Play size={17} /> : <Pause size={17} />}
+                    <span>{paused ? "继续" : "暂停"}</span>
+                  </button>
+                  <button
+                    className="icon-button"
+                    onClick={() => setSettingsOpen(true)}
+                    aria-label="设置模拟速度"
+                  >
+                    <SlidersHorizontal size={17} />
+                  </button>
+                </div>
+              )}
+              {debugMode && scenariosOpen && (
                 <div className="scenario-panel">
                   <span>模拟驾驶场景</span>
                   <button
@@ -1418,13 +1423,15 @@ export default function App() {
           >
             <Layers size={21} />
           </button>
-          <button
-            aria-label="模拟遥测与驾驶设置"
-            title="驾驶设置"
-            onClick={() => setSettingsOpen(true)}
-          >
-            <Settings2 size={20} />
-          </button>
+          {debugMode && (
+            <button
+              aria-label="模拟遥测与驾驶设置"
+              title="驾驶设置"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Settings2 size={20} />
+            </button>
+          )}
         </div>
         {layersOpen && (
           <div className="layers-popover">
@@ -1501,7 +1508,7 @@ export default function App() {
           </div>
         )}
       </main>
-      {settingsOpen && (
+      {debugMode && settingsOpen && (
         <SettingsDialog
           settings={settings}
           onChange={updateSettings}
