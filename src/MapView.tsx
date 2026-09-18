@@ -152,7 +152,10 @@ export default forwardRef<MapControls, Props>(function MapView(props, ref) {
       zoomSnap: 0.1,
       zoomDelta: 0.5,
       preferCanvas: true,
-      maxBounds: bounds,
+      maxBounds: [
+        [-16000, -17500],
+        [15500, 14500],
+      ],
       maxBoundsViscosity: 1,
     });
     map.current = m;
@@ -194,7 +197,6 @@ export default forwardRef<MapControls, Props>(function MapView(props, ref) {
           Math.log2(Math.max(width / 22022.443, height / 22017.067)) * 10,
         ) / 10;
       if (m.getMinZoom() !== minZoom) m.setMinZoom(minZoom);
-      m.panInsideBounds(bounds, { animate: false });
     };
     constrainViewport();
     m.on("resize rotate", constrainViewport);
