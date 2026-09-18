@@ -93,11 +93,21 @@ export default forwardRef<MapControls, Props>(function MapView(props, ref) {
     m.setBearing(-p.telemetry.heading);
     const size = m.getSize();
     const anchor = L.point(size.x * (size.x > 760 ? 0.59 : 0.5), size.y * 0.7);
-    const car = m.latLngToContainerPoint([
-      p.telemetry.position[1],
-      p.telemetry.position[0],
-    ]);
-    m.panBy(car.subtract(anchor), { animate: false });
+    const offset = anchor.subtract(size.divideBy(2));
+    const angle = (-m.getBearing() * Math.PI) / 180;
+    const worldOffset = L.point(
+      offset.x * Math.cos(angle) - offset.y * Math.sin(angle),
+      offset.x * Math.sin(angle) + offset.y * Math.cos(angle),
+    );
+    const position = m.project(
+      [p.telemetry.position[1], p.telemetry.position[0]],
+      m.getZoom(),
+    );
+    m.setView(
+      m.unproject(position.subtract(worldOffset), m.getZoom()),
+      m.getZoom(),
+      { animate: false },
+    );
     cameraUpdate.current = false;
   };
   const overview = () => {
@@ -480,10 +490,8 @@ export default forwardRef<MapControls, Props>(function MapView(props, ref) {
   useEffect(() => {
     if (ready && props.navigating) {
       manual.current = false;
-      map.current?.setMaxBounds([
-        [-16000, -17500],
-        [15500, 14500],
-      ]);
+      // Rotated follow camera must not compete with Leaflet's north-up bounds correction.
+      map.current?.setMaxBounds(L.latLngBounds([]));
       map.current?.setZoom(-1.2, { animate: false });
       followVehicle();
     } else if (ready) map.current?.setBearing(0);
