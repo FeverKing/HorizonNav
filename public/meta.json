@@ -1,0 +1,85 @@
+{
+  "game": "Forza Horizon 6",
+  "map": "Brio",
+  "track": "440771_7583212",
+  "shader": "code.331664_asset.438107",
+  "crs": "FH6-Brio-metres",
+  "axes": {
+    "world": "X = east, Y = up, Z = north, units = metres",
+    "geojson": "coordinates = [X, Z, Y]  (east, north, up)",
+    "image": "u = right, v = down, north is up"
+  },
+  "bbox": {
+    "x": [
+      -12541.169,
+      9481.274
+    ],
+    "z": [
+      -11275.139,
+      10741.928
+    ],
+    "y_nodes": [
+      93.375,
+      1150.283
+    ],
+    "y_height": [
+      85.66,
+      1156.979
+    ]
+  },
+  "y_sea": 103.086,
+  "height": {
+    "size": 1024,
+    "encoding_png": "R = high byte, G = low byte of u16; y = y_min + u16/65535 * (y_max - y_min)",
+    "npy": "float32 metres, shape (1024,1024), row 0 = north",
+    "row0": "north (max Z)",
+    "col0": "west (min X)"
+  },
+  "counts": {
+    "nodes": 38473,
+    "roads": 1531,
+    "edges": 39433,
+    "length_km": 769.773,
+    "junctions": 1849,
+    "oneway_roads": 257,
+    "oneway_edges": 7651,
+    "tunnels": 46,
+    "landmarks": 74,
+    "regions": 10,
+    "components": 1
+  },
+  "road_types": {
+    "dirt": 112,
+    "a": 366,
+    "b": 346,
+    "hidden": 456,
+    "shortcut": 18,
+    "trail": 193,
+    "freeway": 35,
+    "evolving_world": 5
+  },
+  "road_type_order": [
+    "freeway",
+    "a",
+    "b",
+    "hidden",
+    "dirt",
+    "trail",
+    "shortcut",
+    "evolving_world"
+  ],
+  "files": {
+    "geojson/roads.geojson": "1531 road LineStrings [X,Z,Y] + attributes",
+    "geojson/nodes.geojson": "38473 nodes [X,Z,Y]",
+    "geojson/landmarks.geojson": "74 named places",
+    "geojson/regions.geojson": "10 region polygons [X,Z]",
+    "graph.npz": "routing graph (positions, edges, directed CSR)",
+    "height.npy": "1024² float32 metres",
+    "maps/height.png": "packed-u16 height for GPU / web",
+    "maps/amap_base.jpg": "4096 高德底图（无道路）",
+    "maps/amap_roads.png": "8192 高德全图（含道路 + 标注）",
+    "maps/sat.jpg": "4096 官方卫星底图",
+    "landmarks.csv": "地名表",
+    "transforms.json": "world ↔ pixel"
+  }
+}
