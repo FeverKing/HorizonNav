@@ -1007,11 +1007,7 @@ export default function App() {
                         {tab === "explore" && category === "all" && (
                           <div className="explore-title">
                             <div>
-                              <span className="eyebrow">
-                                出发，去发现新的风景
-                              </span>
                               <h1>探索东京与周边</h1>
-                              <p>从城市街道，到山海之间。</p>
                             </div>
                             <Compass size={48} strokeWidth={1.1} />
                           </div>
@@ -1051,9 +1047,6 @@ export default function App() {
                                 : categories.find((c) => c.id === category)
                                     ?.name}
                       </span>
-                      <small>
-                        {query ? "支持中英文地名" : "按直线距离排序"}
-                      </small>
                     </div>
                     <div className="places-list">
                       {visiblePlaces
@@ -1148,13 +1141,6 @@ export default function App() {
                     >
                       <Navigation size={19} />
                     </button>
-                  </div>
-                  <div className="panel-foot">
-                    <span>
-                      <ShieldCheck size={13} />
-                      本地地图已载入
-                    </span>
-                    <span>74 地点 · 10 地区</span>
                   </div>
                 </>
               ) : (
@@ -1297,29 +1283,20 @@ export default function App() {
                             </button>
                           ))}
                         </div>
-                        <div className="selected-route-summary">
-                          <span>
-                            {route.unpaved > 80
-                              ? `非铺装 ${distance(route.unpaved)}`
-                              : "全程以铺装道路为主"}
-                          </span>
-                          <span>
-                            {route.highway > 200
-                              ? `高速 ${distance(route.highway)}`
-                              : "无高速路段"}
-                          </span>
-                        </div>
-                        <div className="route-note">
-                          <ShieldCheck size={15} />
-                          <span>已考虑单行道 · 时间按道路类型估算</span>
-                        </div>
+                        {(route.unpaved > 80 || route.highway > 200) && (
+                          <div className="selected-route-summary">
+                            {route.unpaved > 80 && (
+                              <span>非铺装 {distance(route.unpaved)}</span>
+                            )}
+                            {route.highway > 200 && (
+                              <span>高速 {distance(route.highway)}</span>
+                            )}
+                          </div>
+                        )}
                         {plan.snap.to > 60 && (
                           <div className="snap-note">
                             <MapPin size={15} />
-                            <span>
-                              导航至目的地附近道路，距地标约{" "}
-                              {distance(plan.snap.to)}。
-                            </span>
+                            <span>终点距目的地 {distance(plan.snap.to)}</span>
                           </div>
                         )}
                         <button
@@ -1365,7 +1342,7 @@ export default function App() {
                     >
                       <Navigation size={20} fill="currentColor" />
                       {mode === "arrived" ? "重新导航" : "开始导航"}
-                      <span>模拟驾驶</span>
+                      {debugMode && <span>模拟驾驶</span>}
                     </button>
                   </div>
                 </>
@@ -1498,7 +1475,6 @@ export default function App() {
             </span>
             <span>Brio · 游戏地图</span>
             <i />
-            <span>点击地图选择目的地</span>
           </div>
         )}
         {toast && (

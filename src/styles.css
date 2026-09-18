@@ -2935,3 +2935,43 @@ input {
     bottom: calc(47% + 10px);
   }
 }
+
+/* Softer, independent route choices with restrained selection treatment. */
+.route-options {
+  gap: 10px;
+  padding-bottom: 14px;
+}
+.route-option,
+.route-option:first-child,
+.route-option:last-child {
+  border: 1px solid #e9edf2;
+  border-radius: 13px;
+  background: #f7f8fa;
+  box-shadow: none;
+}
+.route-option.active {
+  border: 1px solid #a9ccff;
+  background: #eef5ff;
+  box-shadow: none;
+}
+.route-option:hover {
+  background: #f0f4f9;
+}
+.route-option.active:hover {
+  background: #e8f2ff;
+}
+.route-options + .detail-toggle {
+  border-top: 1px solid #f0f2f5;
+}
+.start-button {
+  border-radius: 12px;
+}
+@media (max-width: 760px) {
+  .mode-routes .side-panel,
+  .mode-arrived .side-panel {
+    border-radius: 18px 18px 0 0;
+  }
+  .route-option {
+    padding: 14px 6px;
+  }
+}
