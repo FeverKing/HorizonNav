@@ -169,6 +169,18 @@ export default forwardRef<MapControls, Props>(function MapView(props, ref) {
         maxWidth: 110,
       })
       .addTo(m);
+    let scaleTimer: ReturnType<typeof setTimeout> | undefined;
+    m.on("zoomstart", () => {
+      clearTimeout(scaleTimer);
+      el.current?.classList.add("show-scale");
+    });
+    m.on("zoomend", () => {
+      clearTimeout(scaleTimer);
+      scaleTimer = setTimeout(
+        () => el.current?.classList.remove("show-scale"),
+        1200,
+      );
+    });
     // Keep the rotated viewport inside the raster even when zooming out.
     const constrainViewport = () => {
       const size = m.getSize(),
@@ -215,6 +227,7 @@ export default forwardRef<MapControls, Props>(function MapView(props, ref) {
     setReady(true);
     latest.current.onReady();
     return () => {
+      clearTimeout(scaleTimer);
       observer.disconnect();
       m.remove();
       map.current = null;

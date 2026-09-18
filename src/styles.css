@@ -2866,17 +2866,20 @@ input {
 
 /* A metric scale measures game-world metres, including rotated views. */
 .leaflet-bottom.leaflet-left {
-  left: 430px;
-  bottom: 30px;
+  left: var(--map-caption-left);
+  bottom: 43px;
 }
 .leaflet-control-scale {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 160ms ease;
   margin: 0 !important;
   pointer-events: none;
 }
 .leaflet-control-scale-line {
   border: 2px solid #596a72;
   border-top: 0;
-  background: #ffffffba;
+  background: transparent;
   color: #34444e;
   font-size: 12px;
   font-weight: 600;
@@ -2890,15 +2893,45 @@ input {
 }
 @media (max-width: 760px) {
   .leaflet-bottom.leaflet-left {
-    left: 18px;
+    left: var(--map-caption-left);
     bottom: calc(43% + 36px);
   }
   .mode-routes .leaflet-bottom.leaflet-left,
   .mode-arrived .leaflet-bottom.leaflet-left {
-    bottom: calc(47% + 16px);
+    bottom: calc(47% + 34px);
   }
   .mode-navigation .leaflet-bottom.leaflet-left {
-    left: 18px;
+    left: var(--map-caption-left);
     bottom: 180px;
+  }
+}
+
+.workspace {
+  --map-caption-left: 415px;
+}
+.map-bottom-note {
+  left: var(--map-caption-left);
+}
+.show-scale .leaflet-control-scale {
+  opacity: 1;
+  visibility: visible;
+}
+@media (min-width: 1550px) {
+  .workspace {
+    --map-caption-left: 442px;
+  }
+}
+@media (max-width: 1050px) and (min-width: 761px) {
+  .workspace {
+    --map-caption-left: 368px;
+  }
+}
+@media (max-width: 760px) {
+  .workspace {
+    --map-caption-left: 16px;
+  }
+  .mode-routes .map-bottom-note,
+  .mode-arrived .map-bottom-note {
+    bottom: calc(47% + 10px);
   }
 }
