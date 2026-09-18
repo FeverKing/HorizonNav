@@ -57,6 +57,4 @@ The default config is loaded from beside the executable. Relative paths are reso
 
 Use on a trusted local network; the web server has no authentication. Allow the configured TCP/UDP ports through your firewall when connecting from other devices. Packages are not code-signed.
 
-Live reception, forwarding, and reconnection have been tested with synthetic telemetry; **real FH6 gameplay validation is still pending**. The decoder accepts the community Horizon 323/324-byte format. Off-road guidance indicates a direction back to the road, not an obstacle-free path.
-
 See [Development](docs/DEVELOPMENT.md), [Telemetry](docs/TELEMETRY.md), and [Map data](docs/SOURCE-DATA.md) for details.
