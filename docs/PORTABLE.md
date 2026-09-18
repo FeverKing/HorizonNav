@@ -1,12 +1,12 @@
 # 启动与配置
 
 1. 完整解压文件夹，保留 `dist`、`data` 和 `config.yaml`。
-2. Windows 双击 `fh6map.exe`，或在终端运行；macOS/Linux 在终端执行 `./fh6map`。
+2. Windows 双击 `HorizonNav.exe`，或在终端运行；macOS/Linux 在终端执行 `./HorizonNav`。
 3. 浏览器打开 http://127.0.0.1:5173 。手机访问后端电脑的局域网 IP:5173。
 4. 游戏中开启 Data Out，发送到后端电脑的 IP，UDP 端口默认 9999。首次接收需放行系统防火墙中的 UDP 9999；手机访问需放行 HTTP 5173。
 5. 关闭终端或 Ctrl+C 停止服务。
 
-配置修改后重启。`http.host/port` 控制网页服务；`telemetry.host/port` 控制遥测接收；`frontend.path` 指定前端目录；`data.path` 指定外置路网目录。相对路径按配置文件位置解析，默认配置在二进制旁。自定义配置用 `fh6map -config 路径`。
+配置修改后重启。`http.host/port` 控制网页服务；`telemetry.host/port` 控制遥测接收；`frontend.path` 指定前端目录；`data.path` 指定外置路网目录。相对路径按配置文件位置解析，默认配置在二进制旁。自定义配置用 `HorizonNav -config 路径`。
 
 `telemetry.forward.enabled: true` 开启原样 UDP 转发，`targets` 可配置多个 `IP:端口`。不要指向自身或组成转发环。查看 `http://127.0.0.1:5173/api/telemetry/status` 可检查转发计数。UDP 发送成功不保证接收端已收到。
 

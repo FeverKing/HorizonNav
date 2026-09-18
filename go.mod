@@ -1,4 +1,4 @@
-module github.com/FeverKing/fh6map
+module github.com/FeverKing/HorizonNav
 
 go 1.23
 
