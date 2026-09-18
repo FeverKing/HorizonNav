@@ -623,7 +623,7 @@ input {
 }
 .compass-button svg {
   color: #60717d;
-  transform: rotate(-28deg);
+  transform: rotate(0deg);
 }
 .map-controls button small {
   font-size: 9px;
@@ -2862,4 +2862,43 @@ input {
 }
 .turn-card:has(.voice-only) .turn-main {
   padding-right: 28px;
+}
+
+/* A metric scale measures game-world metres, including rotated views. */
+.leaflet-bottom.leaflet-left {
+  left: 430px;
+  bottom: 30px;
+}
+.leaflet-control-scale {
+  margin: 0 !important;
+  pointer-events: none;
+}
+.leaflet-control-scale-line {
+  border: 2px solid #596a72;
+  border-top: 0;
+  background: #ffffffba;
+  color: #34444e;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  padding: 1px 6px 3px;
+  text-align: center;
+  text-shadow: 0 1px white;
+}
+.mode-navigation .leaflet-bottom.leaflet-left {
+  bottom: 35px;
+}
+@media (max-width: 760px) {
+  .leaflet-bottom.leaflet-left {
+    left: 18px;
+    bottom: calc(43% + 36px);
+  }
+  .mode-routes .leaflet-bottom.leaflet-left,
+  .mode-arrived .leaflet-bottom.leaflet-left {
+    bottom: calc(47% + 16px);
+  }
+  .mode-navigation .leaflet-bottom.leaflet-left {
+    left: 18px;
+    bottom: 180px;
+  }
 }

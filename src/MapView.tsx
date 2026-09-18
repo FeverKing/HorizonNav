@@ -123,7 +123,7 @@ export default forwardRef<MapControls, Props>(function MapView(props, ref) {
         const p = latest.current,
           t = p.telemetry.position;
         manual.current = false;
-        map.current?.setView([t[1], t[0]], p.navigating ? -1.2 : -2.3, {
+        map.current?.setView([t[1], t[0]], p.navigating ? -1.2 : -1.8, {
           animate: false,
         });
         p.onFollow(true);
@@ -152,23 +152,40 @@ export default forwardRef<MapControls, Props>(function MapView(props, ref) {
       zoomSnap: 0.1,
       zoomDelta: 0.5,
       preferCanvas: true,
-      maxBounds: [
-        [-16000, -17500],
-        [15500, 14500],
-      ],
-      maxBoundsViscosity: 0.7,
+      maxBounds: bounds,
+      maxBoundsViscosity: 1,
     });
     map.current = m;
     image.current = L.imageOverlay("/maps/standard.webp", bounds, {
       opacity: 1,
     }).addTo(m);
-    m.fitBounds(
-      [
-        [-6600, -3800],
-        [1500, 5100],
-      ],
-      { ...pad(), animate: false },
-    );
+    const origin = latest.current.telemetry.position;
+    m.setView([origin[1], origin[0]], -1.8, { animate: false });
+    L.control
+      .scale({
+        position: "bottomleft",
+        imperial: false,
+        metric: true,
+        maxWidth: 110,
+      })
+      .addTo(m);
+    // Keep the rotated viewport inside the raster even when zooming out.
+    const constrainViewport = () => {
+      const size = m.getSize(),
+        angle = (m.getBearing() * Math.PI) / 180;
+      const c = Math.abs(Math.cos(angle)),
+        s = Math.abs(Math.sin(angle));
+      const width = size.x * c + size.y * s;
+      const height = size.x * s + size.y * c;
+      const minZoom =
+        Math.ceil(
+          Math.log2(Math.max(width / 22022.443, height / 22017.067)) * 10,
+        ) / 10;
+      if (m.getMinZoom() !== minZoom) m.setMinZoom(minZoom);
+      m.panInsideBounds(bounds, { animate: false });
+    };
+    constrainViewport();
+    m.on("resize rotate", constrainViewport);
     routeLayer.current = L.layerGroup().addTo(m);
     recoveryLayer.current = L.layerGroup().addTo(m);
     labels.current = L.layerGroup().addTo(m);

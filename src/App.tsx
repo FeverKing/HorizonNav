@@ -1376,7 +1376,7 @@ export default function App() {
         <div className="map-controls">
           <button
             aria-label="地图朝北"
-            title="朝北查看 · 暂停跟随"
+            title="重置北向 · 暂停跟随"
             className="compass-button"
             onClick={() => map.current?.north()}
           >
