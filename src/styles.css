@@ -2975,3 +2975,22 @@ input {
     padding: 14px 6px;
   }
 }
+
+@media (max-width: 760px) {
+  .mode-routes .map-bottom-note,
+  .mode-arrived .map-bottom-note {
+    bottom: calc(var(--route-panel-height, 47%) + 10px);
+  }
+  .mode-routes .leaflet-bottom.leaflet-left,
+  .mode-arrived .leaflet-bottom.leaflet-left {
+    bottom: calc(var(--route-panel-height, 47%) + 34px);
+  }
+  .mode-routes .map-controls,
+  .mode-arrived .map-controls {
+    bottom: calc(var(--route-panel-height, 47%) + 12px);
+  }
+  .mode-routes .layers-popover,
+  .mode-arrived .layers-popover {
+    bottom: calc(var(--route-panel-height, 47%) + 55px);
+  }
+}

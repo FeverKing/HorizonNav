@@ -63,16 +63,28 @@ export default forwardRef<MapControls, Props>(function MapView(props, ref) {
     manual = useRef(false),
     [ready, setReady] = useState(false);
   latest.current = props;
-  const pad = () =>
-    window.innerWidth > 760
-      ? {
-          paddingTopLeft: L.point(440, 75),
-          paddingBottomRight: L.point(110, 115),
-        }
-      : {
-          paddingTopLeft: L.point(35, 160),
-          paddingBottomRight: L.point(35, 340),
-        };
+  const pad = () => {
+    const root = el.current?.closest(".workspace");
+    const size = map.current?.getSize() ?? L.point(innerWidth, innerHeight);
+    const panel = root?.querySelector(".side-panel")?.getBoundingClientRect();
+    if (root instanceof HTMLElement && panel)
+      root.style.setProperty("--route-panel-height", `${size.y - panel.top}px`);
+    const header = root
+      ?.querySelector(".route-endpoints")
+      ?.getBoundingClientRect();
+    if (size.x > 760)
+      return {
+        paddingTopLeft: L.point((panel?.right ?? 400) + 36, 55),
+        paddingBottomRight: L.point(85, 110),
+      };
+    return {
+      paddingTopLeft: L.point(36, (header?.bottom ?? 110) + 42),
+      paddingBottomRight: L.point(
+        65,
+        size.y - (panel?.top ?? size.y * 0.55) + 40,
+      ),
+    };
+  };
   const followVehicle = () => {
     const m = map.current,
       p = latest.current;
@@ -95,6 +107,11 @@ export default forwardRef<MapControls, Props>(function MapView(props, ref) {
     manual.current = true;
     p.onFollow(false);
     m.setBearing(0);
+    m.setMaxBounds([
+      [-100000, -100000],
+      [100000, 100000],
+    ]);
+    m.setMinZoom(-6);
     if (p.selectedRoute)
       m.fitBounds(
         p.selectedRoute.points.map((pt) => [pt[1], pt[0]]),
@@ -186,6 +203,7 @@ export default forwardRef<MapControls, Props>(function MapView(props, ref) {
     });
     // Keep the rotated viewport inside the raster even when zooming out.
     const constrainViewport = () => {
+      if (latest.current.selectedRoute && !latest.current.navigating) return;
       const size = m.getSize(),
         angle = (m.getBearing() * Math.PI) / 180;
       const c = Math.abs(Math.cos(angle)),
@@ -413,7 +431,20 @@ export default forwardRef<MapControls, Props>(function MapView(props, ref) {
     }
   }, [ready, props.routes, props.selectedRoute, props.navigating]);
   useEffect(() => {
-    if (ready && props.selectedRoute && !props.navigating) overview();
+    if (!ready || !props.selectedRoute || props.navigating) return;
+    let frame = requestAnimationFrame(overview);
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(overview);
+    });
+    const panel = el.current
+      ?.closest(".workspace")
+      ?.querySelector(".side-panel");
+    if (panel) observer.observe(panel);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   }, [ready, props.selectedRoute, props.navigating]);
   useEffect(() => {
     const m = map.current;
@@ -422,8 +453,11 @@ export default forwardRef<MapControls, Props>(function MapView(props, ref) {
     if (!vehicle.current)
       vehicle.current = L.marker([t.position[1], t.position[0]], {
         interactive: false,
-        zIndexOffset: 2000,
+        zIndexOffset: props.selectedRoute && !props.navigating ? -100 : 2000,
       }).addTo(m);
+    vehicle.current.setZIndexOffset(
+      props.selectedRoute && !props.navigating ? -100 : 2000,
+    );
     vehicle.current.setLatLng([t.position[1], t.position[0]]).setIcon(
       L.divIcon({
         className: `vehicle-marker ${props.navigating ? "driving" : ""}`,
@@ -446,6 +480,10 @@ export default forwardRef<MapControls, Props>(function MapView(props, ref) {
   useEffect(() => {
     if (ready && props.navigating) {
       manual.current = false;
+      map.current?.setMaxBounds([
+        [-16000, -17500],
+        [15500, 14500],
+      ]);
       map.current?.setZoom(-1.2, { animate: false });
       followVehicle();
     } else if (ready) map.current?.setBearing(0);
