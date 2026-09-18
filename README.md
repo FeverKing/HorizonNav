@@ -1,100 +1,106 @@
 # 地平线导航 · Horizon Nav
 
-采用高德式地图与导航布局的 React 应用，使用用户提供的 Forza Horizon 6 / Brio 路网数据。前端 React + TypeScript + Leaflet，后端 Node.js + Express。
+React + TypeScript 地图前端，Go 后端。使用 Brio 路网提供路线规划、转向提示、偏航重算与返回道路指引。后端同时提供静态文件托管、Forza UDP 遥测接收、SSE 推送和多目标 UDP 原样转发。
 
-## 运行
+## 直接运行打包版
 
-需要 Node.js 22 或更新版本。
+解压对应平台的文件夹，修改 `config.yaml` 后运行 `fh6map.exe`（Windows）或 `./fh6map`（macOS / Linux）。浏览器访问 `http://127.0.0.1:5173`；手机访问运行程序电脑的局域网 IP 与同一 HTTP 端口。**运行包不需要 Node.js、Go、Python 或数据库。**
+
+```text
+fh6map-windows-amd64/
+  fh6map.exe
+  config.yaml
+  dist/         # 前端文件、底图与地图显示数据
+  data/         # 外置算路数据 graph.json / roads.json
+  使用说明.md
+```
+
+程序默认读取二进制旁的配置，不受当前工作目录影响。也可运行 `fh6map -config /path/to/config.yaml`。配置中的相对路径均相对于该配置文件的目录；修改配置和路网后重启生效。路网数据没有嵌入二进制，替换数据无需重新编译；更新整张地图时应同时更新对应的 `dist/` 地图显示数据。
+
+## 配置
+
+```yaml
+http:
+  host: "0.0.0.0"      # 本机专用可改为 127.0.0.1
+  port: 5173
+frontend:
+  path: "./dist"
+data:
+  path: "./data"
+telemetry:
+  mode: "udp"         # udp 真实遥测；mock 演示驾驶
+  host: "0.0.0.0"
+  port: 9999
+  timeout_ms: 2000
+  heading_sign: 1     # 若实际航向相反，可设置 -1
+  heading_offset: 0   # 航向角度补偿
+  forward:
+    enabled: false
+    targets:
+      - "127.0.0.1:10000"
+      - "192.168.1.20:10001"
+```
+
+`http.port` 是网页端口；`telemetry.port` 是游戏 UDP 发送目标端口。游戏中开启 Data Out，填写后端电脑的局域网 IP 和 `9999`。同机运行时可用 `127.0.0.1`；手机只打开网页，不接收游戏 UDP。默认监听局域网，HTTP 没有账号认证，面向本机/可信局域网使用。
+
+开启 `forward.enabled` 后，每个原始 UDP 数据包会复制给所有目标（最多 32 个，重复目标合并），包括当前解析器不识别的数据包。每个目标独立排队；某个目标失败不会阻塞车辆位置更新。转发不修改包内容、长度或字段；接收方看到的源地址/源端口是本程序的转发 socket，而不是原游戏。禁止配置回本服务，跨服务也不要组成转发环。UDP 不保证送达，可通过 `/api/telemetry/status` 查看每个目标的发送、队列丢弃和错误计数。发送成功仅代表本地 socket 写入成功。
+
+默认 `udp` 模式不会自动回退到 mock。未收到数据或超过 `timeout_ms` 没更新时，网页提示等待/断开，保留最后位置，停止自动偏航与到达判断。`IsRaceOn=0` 同样暂停有效导航。模拟场景栏仅在前端开发启动且后端为 `mock` 时显示。
+
+## 从源码运行
+
+开发依赖 Go 1.23+、Node.js 22+。
 
 ```bash
 npm ci
 npm run dev
 ```
 
-访问 http://127.0.0.1:5173 。前端、API 在同一端口，无需再启动 Python 或配置地图 API Key。
+开发网页为 `http://127.0.0.1:5174`，Vite 将 `/api` 代理到 Go 的 `127.0.0.1:5175`；Go 使用 `config.dev.yaml`，默认 mock，UDP 端口为 `9998`。按 Ctrl+C 同时停止前后端。需要开发真实遥测时修改 `config.dev.yaml` 的 `mode`。
 
-生产运行：
+生产构建：
 
 ```bash
 npm run build
-npm start
+go build -trimpath -o fh6map .
+./fh6map
 ```
 
-Windows PowerShell 自定义端口：`$env:PORT=5180; npm start`。
-macOS / Linux：`PORT=5180 npm start`。默认只绑定本机；需要其他设备访问时显式设 `HOST=0.0.0.0`，并自行配置网络访问控制。
+Windows 使用 `go build -trimpath -o fh6map.exe .`，随后运行 `.\fh6map.exe`。也可 `npm start`，通过 `go run . -config config.yaml` 从源码运行。
 
-## 已实现
-
-- 完整 38,473 节点 / 71,215 有向弧 / 74 地标 / 10 地区地图，保留单行道方向。
-- 本地标准地图、卫星底图与矢量道路；拖动、滚轮、触屏缩放、全览与跟车。
-- 打开页面默认车辆居中，较近比例显示；米/公里比例尺随缩放更新，限制缩小及拖动边界。指南针反映当前视窗朝向，点击重置北向。
-- 中英文搜索、地标分类、收藏与搜索记录（本地保存）、地图点击选点。
-- 更换起点、交换起终点、三种实际算路权重：推荐、距离最短、少走高速；完全相同的路径合并。
-- 转向指引、路线详情、距离与时间估计、目的地道路吸附说明。
-- 黑色导航头部、前方绿色路线、已行驶灰色路线、蓝色方向箭头、剩余距离/时间、到达状态。
-- 导航默认车头朝上、箭头位于画面中下方；拖动地图或手动旋转即退出跟随，定位按钮恢复跟随。
-- 手机双指旋转地图；桌面 Shift + 滚轮旋转；指南针按钮切回北向上自由查看。
-- 高德式路线选择：手机顶部起终点、底部横向方案比较，选中方案高亮并同步地图。
-- 模拟车速 30–180 km/h，1×/10×/30× 回放、暂停/继续、可选浏览器中文语音。
-- 道路内偏航自动重新算路；驶出路网后显示返回道路方向与距离，返回后恢复导航。
-- 桌面与手机布局、空结果、服务失败重试、目的地过近/过远错误处理。
-
-## 体验偏航
-
-1. 搜索“嘉年华”，选择地平线嘉年华场地，点击“开始导航”。
-2. 导航面板底部点击“模拟驾驶 · 1×”。
-3. 选择“偏离原路线”：车位移至另一条真实道路，显示偏航提示，然后按新位置重新算路。
-4. 选择“驶出道路”：车位进入远离路网的区域，显示琥珀色指引、距离和虚线。
-5. 点击“模拟返回道路”。车辆朝最近道路移动，回到道路时再次请求路线并恢复驾驶。设置 10× 或 30× 可加速观察。
-
-## 算路与坐标
-
-输入坐标是游戏米制 `[X, Z, Y]`。底图按数据包的世界范围映射，不使用地理经纬度。
-
-后端从 NPZ 原始 CSR 有向图转换的 `data/graph.json` 计算路径。Dijkstra 使用最小堆。推荐按道路类型时间权重并增加小径惩罚；最短按实际边长；少走高速增加高速成本。预计时间是道路速度模型估算，不含真实交通。
-
-道路数据大多只有 `road_XXXX` 内部名，因此转向提示显示“城市道路/主干道/高速公路”等真实类型，不编造街道名称。地标区域名称来自原始地区多边形。
-
-## API
-
-- `GET /api/health`：本地服务与数据状态。
-- `POST /api/route`：`{from:[x,z],to:[x,z],destination:"地名"}` → 路线、累计距离/时间、指引和端点吸附距离。
-- `POST /api/snap`：`{position:[x,z]}` → 最近道路节点和距离。
-- `POST /api/mock-event`：仅模拟用，`{position,kind:"road"|"terrain",routePoints}`，最多 80 个参照点。
-
-## 验证
+打包（额外需要 Python 3，仅构建时需要）：
 
 ```bash
-npm test
-npm run build
-# 或 npm run check
+python3 scripts/package.py
+# 默认输出到项目旁 horizon-nav-packages，包含 Windows amd64、macOS arm64、Linux amd64
+python3 scripts/package.py --targets darwin-amd64 linux-arm64 --out ./releases
 ```
 
-测试覆盖单行道合法绕行、不可达图、全部 74 个地标可达性、路线估计一致性、路径去重、非法端点、偏航与离路场景，以及预留遥测解析器的坐标/速度换算。
-
-## 数据与已知边界
-
-- 原始数据说明：`docs/SOURCE-DATA.md`；遥测研究与接入说明：`docs/TELEMETRY.md`。
-- 当前只启用 mock，没有连接游戏。附带的 323/324 字节 Data Out 解析器仅为预留适配器，未实机验证。
-- 数据包的 no_right_turn/uturn 标志尚不是完整转向限制表，此版本保留单行道约束，不宣称支持全部交叉口禁转。
-- 当前最近道路吸附使用 X/Z，实机高架/隧道匹配仍需高度和连续轨迹校准。
-- 返回道路虚线表示方向，不能绕过水域、护栏或地形障碍；不会作为越野可行路线宣称。
-- 导航到地标附近最近道路节点，不保证可进入建筑物中心。远离路网超过 1.5 km 的任意选点会被拒绝。
-- 路网与地图来自用户提供数据包，本项目不声明其分发许可；交付用于用户本地使用。
-
-## 更新数据
-
-已附转换后的运行数据，不需要 Python。需要重新导入同结构数据包时，安装 Python numpy / pillow 后运行：
+## 检查
 
 ```bash
-python scripts/prepare_data.py /path/to/data
-npm run build
+npm run check          # Go 自动测试 + TypeScript + 前端生产构建
+npm run test:race      # Go race detector，需对应平台 C 工具链
 ```
+
+自动测试覆盖有向道路、全部 74 地标、路线长度/时间、模拟偏航与返回、配置校验、UDP 两目标逐字节转发、关闭转发、循环目标拒绝、断流、323/324 字节解析、HTTP 接口与 SSE。新旧后端的 74 地标路线方案、距离、时间、点数和指引数已对比一致。
+
+## 接口
+
+- `GET /api/health`：服务、路网节点数与数据模式。
+- `GET /api/runtime`：前端数据模式、UDP 端口与超时时间。
+- `GET /api/telemetry`：SSE，最多 20 Hz 推送归一化车辆数据；自动重连。
+- `GET /api/telemetry/status`：接收/解析/转发计数、连接状态。
+- `POST /api/route`：`{from:[x,z], to:[x,z], destination:"地点"}`。
+- `POST /api/snap`：`{position:[x,z]}` → 最近道路节点、距离与离路标记。
+- `POST /api/mock-event`：仅 mock 模式，`{position,kind:"road"|"terrain",routePoints}`。
+
+算路使用堆优化 Dijkstra 和原始有向 CSR 图，提供推荐、距离最短、少走高速三种权重，重复方案合并。实际输入为游戏米制 `[X,Z,Y]`，不使用经纬度。道路没有可用名称时显示道路类型，不编造街道名。
+
+## 当前边界
+
+UDP → Go → 网页、原样转发和断流恢复已通过合成数据包验证，**尚未用真实 FH6 游戏实机联调**。解析器按社区 Horizon 布局接受 323/324 字节；航向和坐标应在实机确认，未知长度不会更新车辆位置。地图匹配目前以 X/Z 线段距离为主，高架、回环和隧道仍需结合实机轨迹进一步验证；原始数据没有完整道路禁转表。离路虚线是返回道路方向，不是避开水域/山体的可通行越野路线。见 [遥测文档](docs/TELEMETRY.md)、[数据说明](docs/SOURCE-DATA.md)。
 
 ## 第三方组件
 
-地图旋转使用 leaflet-rotate 0.2.8（GPL-3.0），上游为 https://github.com/Raruto/leaflet-rotate 。许可证副本见 `docs/licenses/leaflet-rotate.txt`，完整对应版本源码可通过 `npm ci` 获取。地图数据来源与限制见 `docs/SOURCE-DATA.md`。
-
-## 调试界面
-
-`npm run dev` 显示模拟驾驶操作栏、场景切换和模拟设置入口。`npm run build && npm start` 默认隐藏这些调试控件；正常导航不显示“正在导航”状态行，仍保留语音按钮与偏航/返回道路等必要提示。当前定位数据仍为 mock，隐藏调试界面不代表已接入真实游戏。
+地图旋转使用 leaflet-rotate 0.2.8（GPL-3.0），上游 https://github.com/Raruto/leaflet-rotate 。许可证见 `docs/licenses/leaflet-rotate.txt`。Go YAML 解析使用 gopkg.in/yaml.v3（MIT/Apache-2.0）。地图数据的来源与权利说明见 `docs/SOURCE-DATA.md`。

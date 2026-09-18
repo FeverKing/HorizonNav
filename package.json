@@ -7,15 +7,16 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "node server/index.mjs --dev",
+    "dev": "npm run build && node scripts/dev.mjs",
     "build": "tsc -b && vite build",
-    "start": "node server/index.mjs",
-    "test": "node --test tests/*.test.mjs",
+    "start": "go run . -config config.yaml",
+    "test": "go test ./... && node --experimental-strip-types --test tests/*.test.mjs",
     "check": "npm run test && npm run build",
-    "format": "prettier --write src server tests vite.config.ts"
+    "format": "prettier --write src vite.config.ts scripts/dev.mjs",
+    "test:race": "go test -race ./...",
+    "package": "python3 scripts/package.py"
   },
   "dependencies": {
-    "express": "^5.1.0",
     "leaflet": "^1.9.4",
     "leaflet-rotate": "^0.2.8",
     "lucide-react": "^0.468.0",

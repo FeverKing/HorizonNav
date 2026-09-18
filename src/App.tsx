@@ -1,3 +1,4 @@
+import { useLiveTelemetry, matchProgress } from "./liveTelemetry";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDownUp,
@@ -54,7 +55,7 @@ const INITIAL: Place = {
   category: "position",
   region: "东京市",
 };
-const debugMode = import.meta.env.DEV;
+
 const defaultSettings: Settings = { speed: 90, rate: 1, voice: false };
 const categories = [
   { id: "all", name: "全部", icon: Compass },
@@ -236,7 +237,8 @@ function SettingsDialog({
       <div className="protocol-note">
         <ShieldCheck size={18} />
         <p>
-          当前使用模拟数据。真实游戏遥测尚未连接；接入时可复用同一位置、速度与航向接口。
+          当前为模拟模式。连接游戏时，将 config.yaml 中 telemetry.mode 改为 udp
+          并重启后端。
         </p>
       </div>
       <button className="secondary full" onClick={onReset}>
@@ -250,6 +252,9 @@ function SettingsDialog({
   );
 }
 export default function App() {
+  const live = useLiveTelemetry();
+  const mockMode = live.runtime?.telemetryMode === "mock";
+  const debugMode = import.meta.env.DEV && mockMode;
   const [data, setData] = useState<{
       places: Place[];
       regions: Region[];
@@ -302,18 +307,36 @@ export default function App() {
   const map = useRef<MapControls>(null),
     search = useRef<HTMLInputElement>(null),
     spoken = useRef("");
+  const liveCentered = useRef(false);
   const route = plan?.routes.find((r) => r.id === routeId) || plan?.routes[0],
     navigating = mode === "navigation",
-    rawFrame = useMockTelemetry(
+    mockFrame = useMockTelemetry(
       route,
-      navigating,
+      navigating && mockMode,
       paused || recoveryBlocked,
       settings,
       origin.position,
       navRun,
     );
+  const rawFrame = mockMode
+    ? mockFrame
+    : {
+        ...(live.frame || {
+          source: "udp" as const,
+          connected: false,
+          timestamp: 0,
+          position: origin.position,
+          heading: 0,
+          speedKmh: 0,
+          rpm: 0,
+          gear: 0,
+          progress: 0,
+        }),
+        session: navRun,
+        progress: matchProgress(live.frame?.position || origin.position, route),
+      };
   const recovery = useRecovery({
-    active: navigating,
+    active: navigating && (mockMode || rawFrame.connected),
     route,
     destination,
     raw: rawFrame,
@@ -327,6 +350,12 @@ export default function App() {
     onMessage: setToast,
   });
   const frame = recovery.frame;
+  useEffect(() => {
+    if (!mockMode && frame.connected && mapReady && !liveCentered.current) {
+      liveCentered.current = true;
+      if (!navigating) map.current?.flyTo(frame.position);
+    }
+  }, [mockMode, frame.connected, frame.position, mapReady, navigating]);
   useEffect(() => {
     const ctrl = new AbortController();
     setLoadError("");
@@ -402,8 +431,14 @@ export default function App() {
       navigating &&
       !recoveryBlocked &&
       frame.session === navRun &&
+      frame.connected &&
       route &&
-      frame.progress >= route.distance
+      frame.progress >= route.distance - (mockMode ? 0 : 15) &&
+      (mockMode ||
+        Math.hypot(
+          frame.position[0] - route.points.at(-1)![0],
+          frame.position[1] - route.points.at(-1)![1],
+        ) < 35)
     ) {
       setMode("arrived");
       setPaused(false);
@@ -418,6 +453,9 @@ export default function App() {
   }, [
     frame.progress,
     frame.session,
+    frame.connected,
+    frame.position,
+    mockMode,
     navRun,
     navigating,
     route,
@@ -437,6 +475,7 @@ export default function App() {
       recoveryBlocked ||
       paused ||
       !settings.voice ||
+      !frame.connected ||
       !nextStep ||
       !("speechSynthesis" in window)
     )
@@ -456,6 +495,7 @@ export default function App() {
     paused,
     settings.voice,
     nextStep,
+    frame.connected,
     routeId,
     frame.progress,
   ]);
@@ -484,13 +524,15 @@ export default function App() {
         setQuery("");
         return;
       }
+      if (!mockMode && live.frame?.connected && origin.id === INITIAL.id)
+        setOrigin({ ...INITIAL, position: live.frame.position });
       setDestination(p);
       setMode("routes");
       setQuery("");
       setStepsOpen(false);
       setHistory((h) => [p.id, ...h.filter((id) => id !== p.id)].slice(0, 8));
     },
-    [pickingOrigin, navigating],
+    [pickingOrigin, navigating, mockMode, live.frame, origin.id],
   );
   const selectPoint = useCallback(
     (p: Position) => {
@@ -533,6 +575,10 @@ export default function App() {
   };
   const start = () => {
     if (!route) return;
+    if (!mockMode && !rawFrame.connected) {
+      setToast("请先开启游戏遥测，收到车辆位置后再开始导航");
+      return;
+    }
     setNavRun((v) => v + 1);
     setMode("navigation");
     setPaused(false);
@@ -762,7 +808,7 @@ export default function App() {
                         : recovery.error ||
                           "目的地保持不变，请留意新的转向提示。"}
                     </p>
-                    {recovery.status === "off-road" && (
+                    {mockMode && recovery.status === "off-road" && (
                       <button
                         className="recovery-action"
                         onClick={recovery.returnToRoad}
@@ -804,10 +850,16 @@ export default function App() {
                   </div>
                   <div>
                     <strong>
-                      {frame.gear || "N"}
+                      {mockMode
+                        ? frame.gear || "N"
+                        : frame.gear === 0
+                          ? "R"
+                          : frame.gear === 11
+                            ? "N"
+                            : frame.gear}
                       <small>挡</small>
                     </strong>
-                    <span>模拟挡位</span>
+                    <span>{mockMode ? "模拟挡位" : "当前挡位"}</span>
                   </div>
                   <div>
                     <strong>
@@ -1132,7 +1184,13 @@ export default function App() {
                           ? `当前位置 · ${origin.region}`
                           : origin.name}
                       </strong>
-                      <span>模拟定位 · {origin.en.split(" · ")[0]}</span>
+                      <span>
+                        {mockMode
+                          ? "模拟定位"
+                          : frame.connected
+                            ? "游戏遥测已连接"
+                            : "等待游戏遥测"}
+                      </span>
                     </div>
                     <button
                       aria-label="定位到当前位置"
@@ -1455,7 +1513,7 @@ export default function App() {
               <span>
                 {recoveryBlocked
                   ? "返回道路后更新到达时间"
-                  : `${arrival(remainingTime)} 到达 · ${paused ? "行驶已暂停" : "模拟行驶中"}`}
+                  : `${arrival(remainingTime)} 到达${mockMode ? ` · ${paused ? "行驶已暂停" : "模拟行驶中"}` : frame.connected ? "" : " · 遥测已断开"}`}
               </span>
             </div>
             <button
@@ -1475,6 +1533,14 @@ export default function App() {
             </span>
             <span>Brio · 游戏地图</span>
             <i />
+          </div>
+        )}
+        {!mockMode && !rawFrame.connected && (
+          <div className="telemetry-status" role="status">
+            {live.error ||
+              (live.frame?.timestamp
+                ? "遥测已断开 · 等待重新连接"
+                : `等待游戏遥测${live.runtime ? ` · UDP ${live.runtime.udpPort}` : ""}`)}
           </div>
         )}
         {toast && (

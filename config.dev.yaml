@@ -1,0 +1,17 @@
+http:
+  host: "127.0.0.1"
+  port: 5175
+frontend:
+  path: "./dist"
+data:
+  path: "./data"
+telemetry:
+  mode: "mock"
+  host: "127.0.0.1"
+  port: 9998
+  timeout_ms: 2000
+  heading_sign: 1
+  heading_offset: 0
+  forward:
+    enabled: false
+    targets: []

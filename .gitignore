@@ -4,3 +4,7 @@ dist/
 .playwright-cli/
 output/
 .env
+
+.cache/
+fh6map
+fh6map.exe

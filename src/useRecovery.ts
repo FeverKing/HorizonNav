@@ -122,7 +122,7 @@ export function useRecovery(args: Args) {
     const p = position || args.raw.position;
     if (distanceToRoute(p, args.route.points) < 70) return;
     setStatus("deviated");
-    setPosition(p);
+    if (args.raw.source === "mock") setPosition(p);
     const id = ++generation.current;
     const ctrl = new AbortController();
     request.current = ctrl;
@@ -130,11 +130,27 @@ export function useRecovery(args: Args) {
     pendingTimer.current = setTimeout(async () => {
       pendingTimer.current = null;
       if (id !== generation.current || !latest.current.active) return;
+      if (
+        latest.current.raw.source === "udp" &&
+        latest.current.route &&
+        distanceToRoute(
+          latest.current.raw.position,
+          latest.current.route.points,
+        ) < 70
+      ) {
+        setStatus("normal");
+        return;
+      }
       try {
         const r = await fetch("/api/snap", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ position: current.current || p }),
+          body: JSON.stringify({
+            position:
+              latest.current.raw.source === "udp"
+                ? latest.current.raw.position
+                : current.current || p,
+          }),
           signal: ctrl.signal,
         });
         if (!r.ok) throw new Error("无法检查附近道路");
@@ -143,7 +159,12 @@ export function useRecovery(args: Args) {
         if (snap.offRoad) {
           setTarget(snap.position);
           setStatus("off-road");
-        } else await replan(current.current || p);
+        } else
+          await replan(
+            latest.current.raw.source === "udp"
+              ? latest.current.raw.position
+              : current.current || p,
+          );
       } catch (e) {
         if ((e as Error).name !== "AbortError" && id === generation.current) {
           setError("无法连接算路服务，请重试");
@@ -154,6 +175,38 @@ export function useRecovery(args: Args) {
     // Cancellation is driven by generation / abort on exit; status changes must not cancel this transition.
     return undefined;
   }, [args.active, args.route, args.raw.position, position, status]);
+  useEffect(() => {
+    if (!args.active || args.raw.source !== "udp" || status !== "off-road")
+      return;
+    let busy = false;
+    const ctrl = new AbortController();
+    const timer = setInterval(async () => {
+      if (busy || !latest.current.raw.connected) return;
+      busy = true;
+      try {
+        const p = latest.current.raw.position;
+        const r = await fetch("/api/snap", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ position: p }),
+          signal: ctrl.signal,
+        });
+        if (!r.ok) return;
+        const snap = await r.json();
+        if (ctrl.signal.aborted) return;
+        setTarget(snap.position);
+        if (snap.distance < 120) await replan(p);
+      } catch {
+        /* Retry while live frames continue. */
+      } finally {
+        busy = false;
+      }
+    }, 750);
+    return () => {
+      clearInterval(timer);
+      ctrl.abort();
+    };
+  }, [args.active, args.raw.source, status]);
   useEffect(() => {
     if (status !== "returning" || !target || args.paused) return;
     let last = performance.now();
@@ -218,10 +271,12 @@ export function useRecovery(args: Args) {
       setEventBusy(false);
     }
   }
-  const d =
-      position && target
-        ? Math.hypot(target[0] - position[0], target[1] - position[1])
-        : 0,
+  const d = target
+      ? Math.hypot(
+          target[0] - (position || args.raw.position)[0],
+          target[1] - (position || args.raw.position)[1],
+        )
+      : 0,
     heading =
       position && target
         ? (Math.atan2(target[0] - position[0], target[1] - position[1]) * 180) /

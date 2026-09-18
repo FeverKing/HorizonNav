@@ -1,0 +1,23 @@
+# 相对路径以本配置文件所在目录为基准；修改后重启生效。
+http:
+  host: "0.0.0.0"
+  port: 5173
+frontend:
+  path: "./dist"
+data:
+  path: "./data"
+telemetry:
+  # udp: 真实游戏遥测；mock: 演示驾驶（不自动切换，断流不会变成模拟）
+  mode: "udp"
+  host: "0.0.0.0"
+  port: 9999
+  timeout_ms: 2000
+  heading_sign: 1
+  heading_offset: 0
+  forward:
+    enabled: false
+    # 原样转发每个收到的数据包，可填写多个 IP:端口。
+    # 不要填写本服务的遥测监听地址，以免形成循环。
+    targets:
+      - "127.0.0.1:10000"
+      - "127.0.0.1:10001"

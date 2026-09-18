@@ -2994,3 +2994,30 @@ input {
     bottom: calc(var(--route-panel-height, 47%) + 55px);
   }
 }
+.telemetry-status {
+  position: absolute;
+  z-index: 950;
+  top: 18px;
+  right: 22px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fff8e8;
+  color: #876329;
+  font-size: 12px;
+  box-shadow: 0 2px 8px #26394b0d;
+}
+@media (max-width: 760px) {
+  .telemetry-status {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    text-align: center;
+  }
+  .mode-routes .telemetry-status,
+  .mode-arrived .telemetry-status {
+    top: 122px;
+  }
+  .mode-navigation .telemetry-status {
+    top: 158px;
+  }
+}

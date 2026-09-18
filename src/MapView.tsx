@@ -463,6 +463,11 @@ export default forwardRef<MapControls, Props>(function MapView(props, ref) {
     if (!vehicle.current)
       vehicle.current = L.marker([t.position[1], t.position[0]], {
         interactive: false,
+        icon: L.divIcon({
+          className: "vehicle-marker",
+          html: "",
+          iconSize: [44, 54],
+        }),
         zIndexOffset: props.selectedRoute && !props.navigating ? -100 : 2000,
       }).addTo(m);
     vehicle.current.setZIndexOffset(
